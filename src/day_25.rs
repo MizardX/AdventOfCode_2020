@@ -37,44 +37,25 @@ fn parse(input: &str) -> Result<Handshake, ParseError> {
 }
 
 #[aoc(day25, part1)]
-fn part_1(handshake: &Handshake) -> u64 {
+const fn part_1(handshake: &Handshake) -> u64 {
     const MOD: u64 = 20_201_227;
-    let mut door_exp = None;
-    let mut card_exp = None;
-    let mut val = 1;
-    for exp in 0_u64..10_000_000 {
-        if door_exp.is_none() && val == handshake.door_pk {
-            door_exp = Some(exp);
-            if card_exp.is_some() {
-                break;
-            }
+    let mut public_key = 1;
+    let mut encryption_key = [1; 2];
+    loop {
+        public_key = public_key * 7 % MOD;
+        encryption_key[0] = encryption_key[0] * handshake.door_pk % MOD;
+        if public_key == handshake.card_pk {
+            return encryption_key[0];
         }
-        if card_exp.is_none() && val == handshake.card_pk {
-            card_exp = Some(exp);
-            if door_exp.is_some() {
-                break;
-            }
-        }
-        val = (val * 7) % MOD;
-    }
-    if card_exp.is_none() || door_exp.is_none() {
-        println!("Loop sizes not found");
-        return 0;
-    }
-    let target_exp = card_exp.unwrap() * door_exp.unwrap() % (MOD - 1);
-    let mut exp = target_exp;
-    let mut base = 7;
-    let mut res = 1;
-    while exp > 0 {
-        if exp & 1 == 0 {
-            exp /= 2;
-            base = (base * base) % MOD;
-        } else {
-            res = (res * base) % MOD;
-            exp -= 1;
+        // This is redundant, but only adds 3,9% execution time.
+        // Doing it the other way around, by removing the `encryption_key[0]`
+        // part triples the excution time though. Better to keep both, so it
+        // works almost fastest for all inputs.
+        encryption_key[1] = encryption_key[1] * handshake.card_pk % MOD;
+        if public_key == handshake.door_pk {
+            return encryption_key[1];
         }
     }
-    res
 }
 
 #[cfg(test)]
